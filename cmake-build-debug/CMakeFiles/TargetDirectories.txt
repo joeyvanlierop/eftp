@@ -1,0 +1,3 @@
+C:/Users/joeyv/Documents/Coding/cpsc-441-assignment-1/cmake-build-debug/CMakeFiles/cpsc_441_assignment_1.dir
+C:/Users/joeyv/Documents/Coding/cpsc-441-assignment-1/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/joeyv/Documents/Coding/cpsc-441-assignment-1/cmake-build-debug/CMakeFiles/rebuild_cache.dir
