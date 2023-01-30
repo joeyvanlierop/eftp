@@ -9,7 +9,7 @@
 #define MAX_CLIENTS 5
 #define MAX_UCID_LEN 8
 #define MAX_DATETIME_LEN 25
-#define MAX_FILE_LEN 1000
+#define MAX_FILE_LEN 3
 
 int main(int argc, char *argv[])
 {
@@ -114,31 +114,26 @@ int main(int argc, char *argv[])
 		file = fopen("data.txt", "r");
 		if (file == NULL)
 		{
-			printf("Error opening data.txt");
+			printf("Error opening data.txt\n");
 			close(client_socket);
 			continue;
 		}
 
-		// Read the file contents into the file_contents buffer
-		memset(file_contents, 0, MAX_FILE_LEN);
-		if ((read_size = fread(file_contents, sizeof(char), MAX_FILE_LEN, file)) < 0)
-		{
-			printf("Error reading data.txt\n");
-			fclose(file);
-			close(client_socket);
-			continue;
-		}
-		file_contents[read_size] = '\0';
+		while(!feof(file)) {
+			// Read the file contents into the file_contents buffer
+			read_size = fread(file_contents, 1, MAX_FILE_LEN, file);
 
-		// Send the data to the client
-		if (send(client_socket, file_contents, read_size + 1, 0) < 0)
-		{
-			printf("Error sending data.txt\n");
-			continue;
+			// Send the data to the client
+			if (send(client_socket, file_contents, read_size, 0) < 0)
+			{
+				printf("Error sending data.txt\n");
+				continue;
+			}
+			printf("Sent file content: (%d bytes)\n", read_size);
 		}
-		printf("Sent data.txt: %s\n", file_contents);
 
-		// Close the file
+		// Close the file and socket
 		fclose(file);
+		close(client_socket);
 	}
 }

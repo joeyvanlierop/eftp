@@ -11,7 +11,7 @@
 #define SERVER_IP "127.0.0.1"
 #define MAX_UCID_LEN 8
 #define MAX_DATETIME_LEN 25
-#define MAX_FILE_LEN 1000
+#define MAX_FILE_LEN 3
 
 int main(int argc, char *argv[])
 {
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in server_address;
 	char ucid[MAX_UCID_LEN];
 	char datetime[MAX_DATETIME_LEN];
-	char file_contents[MAX_FILE_LEN];
+	char file_contents[MAX_FILE_LEN + 1];
 	FILE *file;
 
 	// Get user's UCID as input
@@ -85,16 +85,6 @@ int main(int argc, char *argv[])
 	}
 	printf("Sent passcode: %d\n", passcode);
 
-	// Read the file contents sent by the server
-	bytes_received = recv(client_socket, file_contents, MAX_FILE_LEN, 0);
-	if (bytes_received < 0)
-	{
-		printf("Error receiving file contents from server\n");
-		close(client_socket);
-		exit(EXIT_FAILURE);
-	}
-	printf("Received file contents: %s\n", file_contents);
-
 	// Save the file contents into a text file in the run directory
 	file = fopen("received_file.txt", "w");
 	if (file == NULL)
@@ -103,12 +93,24 @@ int main(int argc, char *argv[])
 		close(client_socket);
 		exit(EXIT_FAILURE);
 	}
-	if (fputs(file_contents, file) == EOF)
-	{
-		printf("Error writing to file\n");
-		fclose(file);
-		close(client_socket);
-		exit(EXIT_FAILURE);
+
+	// Read the file contents sent by the server
+	while((bytes_received = recv(client_socket, file_contents, MAX_FILE_LEN, 0)) > 0) {
+		printf("Received file contents: (%d bytes)\n", bytes_received);
+		//if (bytes_received < 0)
+		//{
+		//	printf("Error receiving file contents from server\n");
+		//	close(client_socket);
+		//	exit(EXIT_FAILURE);
+		//}
+		file_contents[bytes_received] = '\0';
+		if (fputs(file_contents, file) == EOF)
+		{
+			printf("Error writing file contents to file\n");
+			fclose(file);
+			close(client_socket);
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	// Close the file stream and socket
