@@ -5,3 +5,6 @@ client: client/client.c
 
 server: server/server.c
 		gcc -o server/server server/server.c
+
+zip: client server
+	zip -r JosephVanLierop.zip client/ server/ Makefile
