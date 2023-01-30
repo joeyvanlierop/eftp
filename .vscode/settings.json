@@ -3,6 +3,7 @@
     "unistd.h": "c",
     "time.h": "c",
     "socket.h": "c",
-    "chrono": "c"
+    "chrono": "c",
+    "inet.h": "c"
   }
 }
