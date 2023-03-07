@@ -20,8 +20,9 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	auto [username, password, ip, port] = parse_auth(argv[1]);
-	bool upload = argv[2] == "upload";
+	bool upload = std::string(argv[2]) == "upload";
 	std::string filename = argv[3];
+	std::cout << upload << std::endl;
 
 	// Socket stuff
 	int client_socket, bytes_sent, bytes_received;
