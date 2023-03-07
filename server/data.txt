@@ -1,3 +1,0 @@
-Hello from data.txt
-This is a new line
-This is the last line (with some numbers!) 123
