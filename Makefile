@@ -1,10 +1,10 @@
-all: client/client server/server
+all: client/eftpclient server/eftpserver
 
-client/client: client/client.cpp
-		g++ -o client/client client/client.cpp
+client/eftpclient: client/client.cpp client/client.h
+		g++ -o client/eftpclient client/client.cpp client/client.h
 
-server/server: server/server.cpp
-		g++ -o server/server server/server.cpp
+server/eftpserver: server/server.cpp server/server.h
+		g++ -o server/eftpserver server/server.cpp server/server.h
 
 zip: client server
 	zip -r JosephVanLierop.zip client/ server/ Makefile
