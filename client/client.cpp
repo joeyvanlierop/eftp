@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +9,7 @@
 #define SERVER_IP "127.0.0.1"
 #define MAX_UCID_LEN 8
 #define MAX_DATETIME_LEN 25
-#define MAX_FILE_LEN 3
+#define MAX_FILE_LEN 4096
 
 int main(int argc, char *argv[])
 {

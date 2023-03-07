@@ -9,7 +9,7 @@
 #define MAX_CLIENTS 5
 #define MAX_UCID_LEN 8
 #define MAX_DATETIME_LEN 25
-#define MAX_FILE_LEN 3
+#define MAX_FILE_LEN 2
 
 int main(int argc, char *argv[])
 {
