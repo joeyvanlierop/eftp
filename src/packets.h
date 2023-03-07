@@ -16,7 +16,7 @@ enum class PacketType : std::uint16_t
 // Auth packet
 struct AuthPacket
 {
-  PacketType opcode;
+  PacketType opcode = PacketType::AUTH;
   std::string username;
   std::string password;
 };
@@ -24,7 +24,7 @@ struct AuthPacket
 // Read request packet structure
 struct ReadRequestPacket
 {
-  PacketType opcode;
+  PacketType opcode = PacketType::RRQ;
   std::uint16_t session;
   std::string filename;
 };
@@ -32,7 +32,7 @@ struct ReadRequestPacket
 // Write request packet structure
 struct WriteRequestPacket
 {
-  PacketType opcode;
+  PacketType opcode = PacketType::WRQ;
   std::uint16_t session;
   std::string filename;
 };
@@ -40,7 +40,7 @@ struct WriteRequestPacket
 // EFTP data packet structure
 struct DataPacket
 {
-  PacketType opcode;
+  PacketType opcode = PacketType::DATA;
   std::uint16_t session;
   std::uint16_t block;
   std::uint8_t segment;
@@ -50,7 +50,7 @@ struct DataPacket
 // EFTP acknowledgment packet structure
 struct AckPacket
 {
-  PacketType opcode;
+  PacketType opcode = PacketType::ACK;
   std::uint16_t session;
   std::uint16_t block;
   std::uint8_t segment;
@@ -59,7 +59,7 @@ struct AckPacket
 // EFTP error packet structure
 struct ErrorPacket
 {
-  PacketType opcode;
+  PacketType opcode = PacketType::ERROR;
   std::string message;
 };
 
