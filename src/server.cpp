@@ -2,12 +2,10 @@
 #include "packets.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <iostream>
+#include <cstring>
 
 #define MAX_LEN 1024
 
@@ -21,20 +19,22 @@ int main(int argc, char *argv[])
 	}
 	auto [username, password] = parse_auth(argv[1]);
 	int port = atoi(argv[2]);
-	std::string working_dir = argv[3];
-	std::cout << username << std::endl; 
-	std::cout << password << std::endl; 
+	std::string working_directory = std::string(argv[3]);
 
-	// Socket stuff
-	int server_socket, client_socket, client_len, bytes_received, read_size;
-	struct sockaddr_in server_address, client_address;
-	char buffer[MAX_LEN];
+	// Listen for auth packets
+	auto server = new Server(username, password, port, working_directory);
+	server->run();
+}
 
+Server::Server(const std::string& username, const std::string& password, int port, const std::string& working_dir)
+	: username(username), password(password), port(port), working_dir(working_dir) {}
+
+void Server::run() {
 	// Create server socket
 	server_socket = socket(AF_INET, SOCK_DGRAM, 0);
 	if (server_socket < 0)
 	{
-		printf("Error creating server socket\n");
+		std::cerr << "Error creating server socket\n";
 		exit(EXIT_FAILURE);
 	}
 
@@ -48,22 +48,26 @@ int main(int argc, char *argv[])
 	// Bind server socket with the server address
 	if (bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
 	{
-		printf("Error binding server socket\n");
+		std::cerr << "Error binding server socket\n";
 		exit(EXIT_FAILURE);
 	}
-
+	
 	while (1)
 	{
-		// Receive hello
-		socklen_t len = sizeof(client_address); ;
-		int n = recvfrom(server_socket, (char *)buffer, MAX_LEN, MSG_WAITALL, ( struct sockaddr *) &client_address, &len);
-    buffer[n] = '\0';
-		std::cout << "Client: " << buffer << std::endl;
+		// Wait for a packet to arrive
+		std::vector<std::uint8_t> buffer(MAX_LEN); // Allocate a buffer to hold the incoming packet
+		socklen_t len = sizeof(client_address);
+		ssize_t bytes_received = recvfrom(server_socket, buffer.data(), buffer.size(), 0, (struct sockaddr*)&client_address, &len);
+		if (bytes_received < 0) {
+				std::cerr << "Failed to receive packet\n";
+				exit(EXIT_FAILURE);
+		}
 
-		// Send hello
-		auto message = "hello from the server";
-    sendto(server_socket, message, strlen(message), MSG_CONFIRM, (const struct sockaddr *) &client_address, len);
-    std::cout << "Hello response sent" << std::endl; 
+		// Decode the packet
+		AuthPacket packet = decodeAuthPacket(buffer);
+
+		// Print the contents of the packet
+		std::cout << "Received auth packet with username: " << packet.username << ", password: " << packet.password << "\n";
 	}
 }
 
