@@ -15,20 +15,10 @@
 // Server socket descriptor
 int sockfd;
 
-// Sessions
-// Maps a session id to a port
+// Session state management
+// 'sessions' maps a session id to a port
 int current_session = 0;
 std::map<int, int> sessions;
-
-// SIGINT handler to properly close server socket
-void sig_handler(int signal_num)
-{
-	if (signal_num == SIGINT)
-	{
-		close(sockfd);
-		exit(signal_num);
-	}
-}
 
 int main(int argc, char *argv[])
 {
@@ -69,7 +59,7 @@ int main(int argc, char *argv[])
 	while (1)
 	{
 		// Wait for a packet to arrive
-		std::vector<std::uint8_t> buffer(1031); // Allocate a buffer to hold the incoming packet
+		std::vector<std::uint8_t> buffer(1031);
 		struct sockaddr_in client_address;
 		socklen_t len = sizeof(client_address);
 		ssize_t bytes_received = recvfrom(sockfd, buffer.data(), buffer.size(), 0, (struct sockaddr *)&client_address, &len);
@@ -81,14 +71,12 @@ int main(int argc, char *argv[])
 
 		// Process message
 		// Only auth messages should be sent to the public port
-		std::thread authenticate(process_auth, buffer, client_address, username, password);
-		authenticate.join();
-		// std::thread process_message_thread(process_message, buffer, bytes_received);
-		// process_message_thread.detach();
+		std::thread session_thread(session, buffer, client_address, username, password);
+		session_thread.detach();
 	}
 }
 
-void process_auth(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::string username, std::string password)
+void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::string username, std::string password)
 {
 	// Validate opcode
 	Opcode opcode = decodeOpcode(buffer);
@@ -117,57 +105,53 @@ void process_auth(std::vector<std::uint8_t> buffer, sockaddr_in client_address, 
 	// Validate credentials
 	if (username.compare(message.username) != 0 || password.compare(message.password) != 0)
 	{
-		// Prepare the ack message
+		// Send the error message and exit
 		ErrorMessage error;
 		error.message = "Invalid credentials";
-		auto response = encodeErrorMessage(error);
-
-		// Send the ack message from a randomly assigned port
-		auto bytes_sent = sendto(sockfd, response.data(), response.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
-		if (bytes_sent < 0)
-		{
-			std::cerr << "Failed to send error message\n";
-			return;
-		}
+		auto error_buffer = encodeErrorMessage(error);
+		sendto(sockfd, error_buffer.data(), error_buffer.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
+		return;
 	}
 
-	// Prepare the ack message
+	// Send an ack message from a randomly assigned port
 	AckMessage ack;
 	ack.session = session;
 	ack.block = 0;
 	ack.segment = 0;
-	auto response = encodeAckMessage(ack);
-
-	// Send the ack message from a randomly assigned port
-	auto bytes_sent = sendto(sockfd, response.data(), response.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
+	auto ack_buffer = encodeAckMessage(ack);
+	auto bytes_sent = sendto(sockfd, ack_buffer.data(), ack_buffer.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
 	if (bytes_sent < 0)
 	{
 		std::cerr << "Failed to send ack message\n";
 		return;
 	}
+
+	// Session
+	while (1)
+	{
+		// Wait for a packet to arrive
+		std::vector<std::uint8_t> buffer(1031);
+		struct sockaddr_in client_address;
+		socklen_t len = sizeof(client_address);
+		ssize_t bytes_received = recvfrom(sockfd, buffer.data(), buffer.size(), 0, (struct sockaddr *)&client_address, &len);
+		if (bytes_received < 0)
+		{
+			std::cerr << "Failed to receive packet" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// Process message
+		std::thread process(process_message, buffer, bytes_received);
+		process.detach();
+	}
 }
 
 void process_message(std::vector<std::uint8_t> buffer, ssize_t bytes_received)
 {
-	// Wait for a data to arrive
-	// data = receive_data();
-	//	- Extract sender port
-	//	- Return buffer
-	//
-	// Parse packet
-	// packet = parse_packet(data);
-	// 	- Decode buffer to packet
-	//
-	// Handle packet
-	// handle(packet);
-	// 	- Deal with auth
-	// 	-
 	Opcode opcode = decodeOpcode(buffer);
-
 	if (opcode == Opcode::AUTH)
 	{
-		AuthMessage message = decodeAuthMessage(buffer);
-		std::cout << "Received auth message with username: " << message.username << ", password: " << message.password << std::endl;
+		std::cout << "Received unexpected auth message" << std::endl;
 	}
 	else if (opcode == Opcode::RRQ)
 	{
@@ -220,4 +204,13 @@ std::tuple<std::string, std::string> parse_auth(const std::string &input)
 
 	// Return the username and password as a tuple
 	return {username, password};
+}
+
+void sig_handler(int signal_num)
+{
+	if (signal_num == SIGINT)
+	{
+		close(sockfd);
+		exit(signal_num);
+	}
 }

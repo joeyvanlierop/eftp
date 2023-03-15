@@ -41,41 +41,8 @@ int main(int argc, char *argv[])
 	message.password = password;
 	auto message_data = encodeAuthMessage(message);
 
-	// DEBUG 1
-	ReadRequestMessage message1;
-	message1.session = 1;
-	message1.filename = "a";
-	auto message_data1 = encodeReadRequestMessage(message1);
-
-	// DEBUG 2
-	WriteRequestMessage message2;
-	message2.session = 2;
-	message2.filename = "b";
-	auto message_data2 = encodeWriteRequestMessage(message2);
-
-	// DEBUG 3
-	DataMessage message3;
-	message3.session = 1;
-	message3.block = 2;
-	message3.segment = 3;
-	message3.data = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-	auto message_data3 = encodeDataMessage(message3);
-
-	// DEBUG 4
-	AckMessage message4;
-	message4.session = 7;
-	message4.block = 8;
-	message4.segment = 9;
-	auto message_data4 = encodeAckMessage(message4);
-
-	// DEBUG 5
-	ErrorMessage message5;
-	message5.message = "c";
-	auto message_data5 = encodeErrorMessage(message5);
-
 	// Send the message over UDP from a randomly assigned port
 	auto bytes_sent = sendto(sockfd, message_data.data(), message_data.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
-	std::cout << "Bytes sent: " << bytes_sent << std::endl;
 	if (bytes_sent < 0)
 	{
 		std::cerr << "Failed to send message\n";
@@ -98,32 +65,25 @@ int main(int argc, char *argv[])
 	{
 		ErrorMessage error = decodeErrorMessage(buffer);
 		std::cout << "Received error message: " << error.message << std::endl;
+		return EXIT_FAILURE;
 	}
-	else if (opcode == Opcode::ACK)
-	{
-		AckMessage ack = decodeAckMessage(buffer);
-		std::cout << "Received ack message with session: " << ack.session << ", block: " << ack.block << ", segment: " << +ack.segment << std::endl;
-	}
-	else
+	else if (opcode != Opcode::ACK)
 	{
 		std::cout << "Received message with invalid opcode: " << (std::uint16_t)opcode << std::endl;
+		return EXIT_FAILURE;
 	}
 
-	// // Debug
-	// bytes_sent = sendto(sockfd, message_data1.data(), message_data1.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
-	// std::cout << "Bytes sent: " << bytes_sent << std::endl;
+	// Decode ack message
+	AckMessage ack = decodeAckMessage(buffer);
+	int session = ack.session;
+	std::cout << "Received ack message with session: " << ack.session << ", block: " << ack.block << ", segment: " << +ack.segment << std::endl;
 
-	// bytes_sent = sendto(sockfd, message_data2.data(), message_data2.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
-	// std::cout << "Bytes sent: " << bytes_sent << std::endl;
-
-	// bytes_sent = sendto(sockfd, message_data3.data(), message_data3.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
-	// std::cout << "Bytes sent: " << bytes_sent << std::endl;
-
-	// bytes_sent = sendto(sockfd, message_data4.data(), message_data4.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
-	// std::cout << "Bytes sent: " << bytes_sent << std::endl;
-
-	// bytes_sent = sendto(sockfd, message_data5.data(), message_data5.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
-	// std::cout << "Bytes sent: " << bytes_sent << std::endl;
+	// Send read request
+	ReadRequestMessage rrq;
+	rrq.session = session;
+	rrq.filename = "file.txt";
+	auto rrq_buffer = encodeReadRequestMessage(rrq);
+	sendto(sockfd, rrq_buffer.data(), rrq_buffer.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
 
 	// Clean up
 	close(sockfd);
