@@ -1,24 +1,12 @@
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
 #include <tuple>
 #include <string>
+#include <arpa/inet.h>
+#include <vector>
 
 int main(int argc, char *argv[]);
 
-std::tuple<std::string, std::string> parse_auth(const std::string& input);
+void process_auth(std::vector<std::uint8_t> buffer, sockaddr_in port, std::string username, std::string password);
 
-class Server {
-  private:
-    std::string username;
-    std::string password;
-    std::string working_dir;
-    int port;
-    int server_socket;
-    struct sockaddr_in server_address;
-    struct sockaddr_in client_address;
-  
-  public:
-    Server(const std::string& username, const std::string& password, int port, const std::string& working_dir);
-    void run();
-};
+void process_message(std::vector<uint8_t> buffer, ssize_t bytes_received);
+
+std::tuple<std::string, std::string> parse_auth(const std::string &input);
