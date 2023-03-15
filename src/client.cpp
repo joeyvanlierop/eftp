@@ -49,13 +49,13 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	// Wait for a packet to arrive
-	std::vector<std::uint8_t> buffer(1031); // Allocate a buffer to hold the incoming packet
+	// Wait for a message to arrive
+	std::vector<std::uint8_t> buffer(1031); // Allocate a buffer to hold the incoming message
 	socklen_t len = sizeof(server_address);
 	ssize_t bytes_received = recvfrom(sockfd, buffer.data(), buffer.size(), 0, (struct sockaddr *)&server_address, &len);
 	if (bytes_received < 0)
 	{
-		std::cerr << "Failed to receive packet" << std::endl;
+		std::cerr << "Failed to receive message" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 

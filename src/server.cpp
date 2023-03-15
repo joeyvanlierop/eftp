@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0)
 	{
-		std::cerr << "Error creating server socket\n";
+		std::cerr << "Error creating server socket" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 	// Bind the server socket to the server address
 	if (bind(sockfd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
 	{
-		std::cerr << "Error binding server socket\n";
+		std::cerr << "Error binding server socket" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -58,14 +58,14 @@ int main(int argc, char *argv[])
 	signal(SIGINT, sig_handler);
 	while (1)
 	{
-		// Wait for a packet to arrive
+		// Wait for a message to arrive
 		std::vector<std::uint8_t> buffer(1031);
 		struct sockaddr_in client_address;
 		socklen_t len = sizeof(client_address);
 		ssize_t bytes_received = recvfrom(sockfd, buffer.data(), buffer.size(), 0, (struct sockaddr *)&client_address, &len);
 		if (bytes_received < 0)
 		{
-			std::cerr << "Failed to receive packet" << std::endl;
+			std::cerr << "Failed to receive message" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -98,7 +98,7 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0)
 	{
-		std::cerr << "Error creating server socket\n";
+		std::cerr << "Error creating server socket" << std::endl;
 		return;
 	}
 
@@ -122,21 +122,21 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 	auto bytes_sent = sendto(sockfd, ack_buffer.data(), ack_buffer.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
 	if (bytes_sent < 0)
 	{
-		std::cerr << "Failed to send ack message\n";
+		std::cerr << "Failed to send ack message" << std::endl;
 		return;
 	}
 
 	// Session
 	while (1)
 	{
-		// Wait for a packet to arrive
+		// Wait for a message to arrive
 		std::vector<std::uint8_t> buffer(1031);
 		struct sockaddr_in client_address;
 		socklen_t len = sizeof(client_address);
 		ssize_t bytes_received = recvfrom(sockfd, buffer.data(), buffer.size(), 0, (struct sockaddr *)&client_address, &len);
 		if (bytes_received < 0)
 		{
-			std::cerr << "Failed to receive packet" << std::endl;
+			std::cerr << "Failed to receive message" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
