@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <iostream>
 #include <cstring>
@@ -78,6 +77,15 @@ int main(int argc, char *argv[])
 	int session = ack.session;
 	std::cout << "Received ack message with session: " << ack.session << ", block: " << ack.block << ", segment: " << +ack.segment << std::endl;
 
+	read_request(sockfd, server_address, session, filename);
+
+	// Clean up
+	close(sockfd);
+	return EXIT_SUCCESS;
+}
+
+void read_request(int sockfd, sockaddr_in server_address, int session, std::string filename)
+{
 	// Send read request
 	ReadRequestMessage rrq;
 	rrq.session = session;
@@ -85,9 +93,49 @@ int main(int argc, char *argv[])
 	auto rrq_buffer = encodeReadRequestMessage(rrq);
 	sendto(sockfd, rrq_buffer.data(), rrq_buffer.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
 
-	// Clean up
-	close(sockfd);
-	return EXIT_SUCCESS;
+	while (1)
+	{
+		// Wait for a message to arrive
+		std::vector<std::uint8_t> buffer(1031);
+		socklen_t len = sizeof(server_address);
+		ssize_t bytes_received = recvfrom(sockfd, buffer.data(), buffer.size(), 0, (struct sockaddr *)&server_address, &len);
+		if (bytes_received < 0)
+		{
+			std::cerr << "Failed to receive message" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// Validate data message
+		Opcode opcode = decodeOpcode(buffer);
+		if (opcode != Opcode::DATA)
+		{
+			std::cout << "Expected data message" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		DataMessage data = decodeDataMessage(buffer);
+		std::cout << "Received data packet (" << data.data.size() << ")" << std::endl;
+
+		// Send an ack message
+		AckMessage ack;
+		ack.session = session;
+		ack.block = data.block;
+		ack.segment = data.segment;
+		auto ack_buffer = encodeAckMessage(ack);
+		auto bytes_sent = sendto(sockfd, ack_buffer.data(), ack_buffer.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
+		if (bytes_sent < 0)
+		{
+			std::cerr << "Failed to send ack message" << std::endl;
+			close(sockfd);
+			return;
+		}
+		std::cout << "Sent ack packet" << std::endl;
+
+		// We have received the last segment of the current block
+		if (data.data.size() == 0)
+			break;
+	}
+
+	std::cout << "Done receiving " << filename << std::endl;
 }
 
 std::tuple<std::string, std::string, std::string, int> parse_auth(const std::string &input)

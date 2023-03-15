@@ -1,5 +1,6 @@
 #include "server.h"
 #include "messages.h"
+#include "session.h"
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -15,10 +16,8 @@
 // Server socket descriptor
 int sockfd;
 
-// Session state management
-// 'sessions' maps a session id to a port
+// Current session
 int current_session = 0;
-std::map<int, int> sessions;
 
 int main(int argc, char *argv[])
 {
@@ -71,121 +70,8 @@ int main(int argc, char *argv[])
 
 		// Process message
 		// Only auth messages should be sent to the public port
-		std::thread session_thread(session, buffer, client_address, username, password);
+		std::thread session_thread(session, buffer, client_address, username, password, current_session++);
 		session_thread.detach();
-	}
-}
-
-void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::string username, std::string password)
-{
-	// Validate opcode
-	Opcode opcode = decodeOpcode(buffer);
-	if (opcode != Opcode::AUTH)
-	{
-		std::cout << "Expected auth message, received: " << (std::uint16_t)opcode << std::endl;
-		return;
-	}
-
-	// Decode message
-	AuthMessage message = decodeAuthMessage(buffer);
-	std::cout << "Received auth message with username: " << message.username << ", password: " << message.password << std::endl;
-
-	// Register session
-	int session = current_session++;
-	sessions[session] = client_address.sin_port;
-
-	// Bind the server socket to the server address
-	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sockfd < 0)
-	{
-		std::cerr << "Error creating server socket" << std::endl;
-		return;
-	}
-
-	// Validate credentials
-	if (username.compare(message.username) != 0 || password.compare(message.password) != 0)
-	{
-		// Send the error message and exit
-		ErrorMessage error;
-		error.message = "Invalid credentials";
-		auto error_buffer = encodeErrorMessage(error);
-		sendto(sockfd, error_buffer.data(), error_buffer.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
-		return;
-	}
-
-	// Send an ack message from a randomly assigned port
-	AckMessage ack;
-	ack.session = session;
-	ack.block = 0;
-	ack.segment = 0;
-	auto ack_buffer = encodeAckMessage(ack);
-	auto bytes_sent = sendto(sockfd, ack_buffer.data(), ack_buffer.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
-	if (bytes_sent < 0)
-	{
-		std::cerr << "Failed to send ack message" << std::endl;
-		return;
-	}
-
-	// Session
-	while (1)
-	{
-		// Wait for a message to arrive
-		std::vector<std::uint8_t> buffer(1031);
-		struct sockaddr_in client_address;
-		socklen_t len = sizeof(client_address);
-		ssize_t bytes_received = recvfrom(sockfd, buffer.data(), buffer.size(), 0, (struct sockaddr *)&client_address, &len);
-		if (bytes_received < 0)
-		{
-			std::cerr << "Failed to receive message" << std::endl;
-			exit(EXIT_FAILURE);
-		}
-
-		// Process message
-		std::thread process(process_message, buffer, bytes_received);
-		process.detach();
-	}
-}
-
-void process_message(std::vector<std::uint8_t> buffer, ssize_t bytes_received)
-{
-	Opcode opcode = decodeOpcode(buffer);
-	if (opcode == Opcode::AUTH)
-	{
-		std::cout << "Received unexpected auth message" << std::endl;
-	}
-	else if (opcode == Opcode::RRQ)
-	{
-		ReadRequestMessage message = decodeReadRequestMessage(buffer);
-		std::cout << "Received read request message with session: " << message.session << ", filename: " << message.filename << std::endl;
-	}
-	else if (opcode == Opcode::WRQ)
-	{
-		WriteRequestMessage message = decodeWriteRequestMessage(buffer);
-		std::cout << "Received write request message with session: " << message.session << ", filename: " << message.filename << std::endl;
-	}
-	else if (opcode == Opcode::DATA)
-	{
-		DataMessage message = decodeDataMessage(buffer);
-		std::cout << "Received data request message with session: " << message.session << ", block: " << message.block << ", segment: " << +message.segment << ", data: { ";
-		for (auto i = 0; i < bytes_received - DATA_HEADER_SIZE; i++)
-		{
-			std::cout << +message.data[i] << ", ";
-		}
-		std::cout << "}" << std::endl;
-	}
-	else if (opcode == Opcode::ACK)
-	{
-		AckMessage message = decodeAckMessage(buffer);
-		std::cout << "Received ack message with session: " << message.session << ", block: " << message.block << ", segment: " << +message.segment << std::endl;
-	}
-	else if (opcode == Opcode::ERROR)
-	{
-		ErrorMessage message = decodeErrorMessage(buffer);
-		std::cout << "Received error message with message: " << message.message << std::endl;
-	}
-	else
-	{
-		std::cout << "Received message with invalid opcode: " << (std::uint16_t)opcode << std::endl;
 	}
 }
 
