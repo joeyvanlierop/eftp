@@ -9,6 +9,7 @@
 #include "messages.h"
 #include "file.h"
 #include "socket.h"
+#include "errors.h"
 
 int main(int argc, char *argv[])
 {
@@ -38,16 +39,18 @@ int main(int argc, char *argv[])
 	message.password = password;
 	auto auth_buffer = encodeAuthMessage(message);
 	send_data(sockfd, server_address, auth_buffer);
+	std::cout << "Sent auth message with username: " << message.username << ", password: " << message.password << std::endl;
 
-	// Wait for ack to arrive
+	// Get session number from ack message
 	AckMessage ack;
 	try
 	{
-		(ack = receive_ack(sockfd, server_address));
+		ack = receive_ack(sockfd, server_address);
 	}
-	catch (std::exception const &e)
+	catch (eftp_exception const &e)
 	{
-		std::cout << "Error: " << e.what() << std::endl;
+		std::cerr << e.what() << std::endl;
+		close(sockfd);
 		exit(EXIT_FAILURE);
 	}
 	int session = ack.session;
@@ -73,7 +76,17 @@ void read_request(int sockfd, sockaddr_in server_address, int session, std::stri
 	send_data(sockfd, server_address, rrq_buffer);
 
 	// Read incoming blocks
-	receive_file(sockfd, server_address, session, filename, "./");
+	try
+	{
+		receive_file(sockfd, server_address, session, filename, "./");
+	}
+	catch (eftp_exception const &e)
+	{
+		std::cerr << e.what() << std::endl;
+	}
+
+	// Close socket
+	close(sockfd);
 }
 
 void write_request(int sockfd, sockaddr_in server_address, int session, std::string filename)
@@ -86,7 +99,17 @@ void write_request(int sockfd, sockaddr_in server_address, int session, std::str
 	send_data(sockfd, server_address, wrq_buffer);
 
 	// Read incoming blocks
-	send_file(sockfd, server_address, session, filename, "./");
+	try
+	{
+		send_file(sockfd, server_address, session, filename, "./");
+	}
+	catch (eftp_exception const &e)
+	{
+		std::cerr << e.what() << std::endl;
+	}
+
+	// Close socket
+	close(sockfd);
 }
 
 std::tuple<std::string, std::string, std::string, int> parse_auth(const std::string &input)

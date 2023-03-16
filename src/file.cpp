@@ -16,11 +16,26 @@
 #include "file.h"
 #include "messages.h"
 #include "socket.h"
+#include "errors.h"
+
+#define DEFAULT_RETRIES 3
 
 void send_file(int sockfd, sockaddr_in address, int session, std::string filename, std::string working_directory)
 {
 	std::ifstream file(working_directory + filename, std::ios::in | std::ios::binary);
 
+	// Send error message if file does not exist
+	if (file.fail())
+	{
+		// Send the error message and exit
+		ErrorMessage error;
+		error.message = "File does not exist";
+		auto error_buffer = encodeErrorMessage(error);
+		send_data(sockfd, address, error_buffer);
+		throw io_error("file does not exist");
+	}
+
+	// Send file blocks
 	int current_block = 1;
 	while (1)
 	{
@@ -41,7 +56,7 @@ void send_file(int sockfd, sockaddr_in address, int session, std::string filenam
 	}
 
 	std::cout << "Done sending " << filename << std::endl;
-	close(sockfd);
+	file.close();
 }
 
 void send_block(int sockfd, sockaddr_in address, int session, std::vector<std::uint8_t> block, int current_block, int block_size)
@@ -64,31 +79,36 @@ void send_block(int sockfd, sockaddr_in address, int session, std::vector<std::u
 
 bool send_segment(int sockfd, sockaddr_in address, int session, std::vector<std::uint8_t> segment, int current_block, int current_segment)
 {
-	// Send data message
-	DataMessage data;
-	data.session = session;
-	data.block = current_block;
-	data.segment = current_segment;
-	data.data = segment;
-	auto data_buffer = encodeDataMessage(data);
-	send_data(sockfd, address, data_buffer);
-	std::cout << "Sent data segment with session: " << session << ", block: " << current_block << ", segment: " << current_segment << " (" << segment.size() << ")" << std::endl;
-
-	// Wait for ack to arrive
-	AckMessage ack;
-	try
+	auto retry_count = 3;
+	while (1)
 	{
-		ack = receive_ack(sockfd, address);
-	}
-	catch (std::exception const &e)
-	{
-		std::cout << "Error: " << e.what() << std::endl;
-		close(sockfd);
-		exit(EXIT_FAILURE);
-	}
+		// Send data message
+		DataMessage data;
+		data.session = session;
+		data.block = current_block;
+		data.segment = current_segment;
+		data.data = segment;
+		auto data_buffer = encodeDataMessage(data);
+		send_data(sockfd, address, data_buffer);
+		std::cout << "Sent data segment with session: " << session << ", block: " << current_block << ", segment: " << current_segment << " (" << segment.size() << ")" << std::endl;
 
-	// Validate received ack
-	return (ack.session == session && ack.block == current_block && ack.segment == current_segment);
+		// Wait for ack to arrive
+		AckMessage ack;
+		try
+		{
+			// Verify correct ack
+			ack = receive_ack(sockfd, address);
+			return (ack.session == session && ack.block == current_block && ack.segment == current_segment);
+		}
+		catch (receive_error const &e)
+		{
+			// Retry if receive timed out
+			if (retry_count > 0)
+				retry_count--;
+			else
+				throw timeout_error("transfer timed out after 3 retries");
+		}
+	}
 }
 
 void receive_file(int sockfd, sockaddr_in address, int session, std::string filename, std::string working_directory)
@@ -140,17 +160,7 @@ std::vector<std::uint8_t> receive_block(int sockfd, sockaddr_in address, int ses
 std::vector<std::uint8_t> receive_segment(int sockfd, sockaddr_in address, int session)
 {
 	// Wait for a message to arrive
-	ssize_t bytes_received;
-	std::vector<std::uint8_t> buffer;
-	try
-	{
-		std::tie(bytes_received, buffer) = receive_data(sockfd, address);
-	}
-	catch (std::exception const &e)
-	{
-		std::cout << "Error: " << e.what() << std::endl;
-		exit(EXIT_FAILURE);
-	}
+	auto [bytes_received, buffer] = receive_data(sockfd, address);
 
 	// Validate data message
 	Opcode opcode = decodeOpcode(buffer);

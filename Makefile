@@ -2,11 +2,11 @@
 
 all: eftpclient eftpserver
 
-eftpclient: client.o file.o socket.o messages.o 
-	g++ -g client.o file.o socket.o messages.o -o eftpclient
+eftpclient: client.o file.o socket.o messages.o errors.o
+	g++ -g client.o file.o socket.o messages.o errors.o -o eftpclient
 
-eftpserver: server.o session.o file.o socket.o messages.o 
-	g++ -g server.o session.o file.o socket.o messages.o -o eftpserver
+eftpserver: server.o session.o file.o socket.o messages.o errors.o
+	g++ -g server.o session.o file.o socket.o messages.o errors.o -o eftpserver
 
 client.o: src/client.cpp src/client.h
 	g++ -c src/client.cpp
@@ -25,6 +25,9 @@ file.o: src/file.cpp src/file.h
 
 messages.o: src/messages.cpp src/messages.h
 	g++ -c src/messages.cpp
+
+errors.o: src/errors.cpp src/errors.h
+	g++ -c src/errors.cpp
 
 clean:
 	-rm *.o eftpclient eftpserver

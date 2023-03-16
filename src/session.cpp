@@ -12,6 +12,7 @@
 #include "session.h"
 #include "socket.h"
 #include "messages.h"
+#include "errors.h"
 
 void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::string username, std::string password, int session, std::string working_directory)
 {
@@ -51,11 +52,11 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 	{
 		std::tie(std::ignore, req_buffer) = receive_data(sockfd, client_address);
 	}
-	catch (std::exception const &e)
+	catch (eftp_exception const &e)
 	{
-		std::cout << "Error: " << e.what() << std::endl;
+		std::cout << e.what() << std::endl;
 		close(sockfd);
-		exit(EXIT_FAILURE);
+		return;
 	}
 
 	// Process message
@@ -65,13 +66,27 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 	{
 		ReadRequestMessage rrq = decodeReadRequestMessage(req_buffer);
 		std::cout << "Received read request message with session: " << rrq.session << ", filename: " << rrq.filename << std::endl;
-		send_file(sockfd, client_address, session, rrq.filename, working_directory);
+		try
+		{
+			send_file(sockfd, client_address, session, rrq.filename, working_directory);
+		}
+		catch (eftp_exception const &e)
+		{
+			std::cerr << e.what() << std::endl;
+		}
 	}
 	else if (opcode == Opcode::WRQ)
 	{
 		WriteRequestMessage wrq = decodeWriteRequestMessage(req_buffer);
 		std::cout << "Received write request message with session: " << wrq.session << ", filename: " << wrq.filename << std::endl;
-		receive_file(sockfd, client_address, session, wrq.filename, working_directory);
+		try
+		{
+			receive_file(sockfd, client_address, session, wrq.filename, working_directory);
+		}
+		catch (eftp_exception const &e)
+		{
+			std::cerr << e.what() << std::endl;
+		}
 	}
 	else
 	{

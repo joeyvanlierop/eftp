@@ -13,6 +13,7 @@
 #include "server.h"
 #include "socket.h"
 #include "session.h"
+#include "errors.h"
 
 // Server socket descriptor
 int sockfd;
@@ -61,9 +62,9 @@ int main(int argc, char *argv[])
 		{
 			std::tie(std::ignore, buffer) = receive_data(sockfd, client_address);
 		}
-		catch (std::exception const &e)
+		catch (eftp_exception const &e)
 		{
-			std::cout << "Error: " << e.what() << std::endl;
+			std::cout << e.what() << std::endl;
 			continue;
 		}
 

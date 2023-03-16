@@ -19,6 +19,4 @@ ssize_t send_ack(int sockfd, sockaddr_in &address, std::uint16_t session, std::u
 
 std::tuple<ssize_t, std::vector<std::uint8_t>> receive_data(int sockfd, sockaddr_in &address);
 
-std::tuple<ssize_t, std::vector<std::uint8_t>> receive_data(int sockfd, sockaddr_in &address, int retries_remaining);
-
 AckMessage receive_ack(int sockfd, sockaddr_in &address);
