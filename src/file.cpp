@@ -18,8 +18,6 @@
 #include "socket.h"
 #include "errors.h"
 
-#define DEFAULT_RETRIES 3
-
 void send_file(int sockfd, sockaddr_in address, int session, std::string filename, std::string working_directory)
 {
 	std::ifstream file(working_directory + filename, std::ios::in | std::ios::binary);
@@ -77,37 +75,24 @@ void send_block(int sockfd, sockaddr_in address, int session, std::vector<std::u
 		send_segment(sockfd, address, session, {}, current_block, offset + 1);
 }
 
-bool send_segment(int sockfd, sockaddr_in address, int session, std::vector<std::uint8_t> segment, int current_block, int current_segment)
+void send_segment(int sockfd, sockaddr_in address, int session, std::vector<std::uint8_t> segment, int current_block, int current_segment)
 {
-	auto retry_count = 3;
-	while (1)
-	{
-		// Send data message
-		DataMessage data;
-		data.session = session;
-		data.block = current_block;
-		data.segment = current_segment;
-		data.data = segment;
-		auto data_buffer = encodeDataMessage(data);
-		send_data(sockfd, address, data_buffer);
-		std::cout << "Sent data segment with session: " << session << ", block: " << current_block << ", segment: " << current_segment << " (" << segment.size() << ")" << std::endl;
+	// Send data message
+	DataMessage data;
+	data.session = session;
+	data.block = current_block;
+	data.segment = current_segment;
+	data.data = segment;
+	auto data_buffer = encodeDataMessage(data);
 
-		// Wait for ack to arrive
-		AckMessage ack;
-		try
-		{
-			// Verify correct ack
-			ack = receive_ack(sockfd, address);
-			return (ack.session == session && ack.block == current_block && ack.segment == current_segment);
-		}
-		catch (receive_error const &e)
-		{
-			// Retry if receive timed out
-			if (retry_count > 0)
-				retry_count--;
-			else
-				throw timeout_error("transfer timed out after 3 retries");
-		}
+	// Exchange data
+	std::cout << "Sending data segment with session: " << session << ", block: " << current_block << ", segment: " << current_segment << " (" << segment.size() << ")" << std::endl;
+	AckMessage ack = exchange_data(sockfd, address, data_buffer);
+
+	// Validate ack
+	if (!(ack.session == session && ack.block == current_block && ack.segment == current_segment))
+	{
+		throw misordered_ack("received misordered ack");
 	}
 }
 
@@ -166,7 +151,7 @@ std::vector<std::uint8_t> receive_segment(int sockfd, sockaddr_in address, int s
 	Opcode opcode = decodeOpcode(buffer);
 	if (opcode != Opcode::DATA)
 	{
-		std::cout << "Expected data message" << std::endl;
+		std::cout << "Expected data message, received: " << (int)opcode << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	buffer.resize(bytes_received);

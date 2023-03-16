@@ -33,6 +33,11 @@ struct unexpected_message : public receive_error
     unexpected_message(std::string message);
 };
 
+struct misordered_ack : public receive_error
+{
+    misordered_ack(std::string message);
+};
+
 struct send_error : public eftp_exception
 {
     send_error(std::string message);

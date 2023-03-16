@@ -33,19 +33,18 @@ int main(int argc, char *argv[])
 	server_address.sin_addr.s_addr = inet_addr(ip.c_str());
 	server_address.sin_port = htons(port);
 
-	// Send auth message
+	// Prepare auth message
 	AuthMessage message;
 	message.username = username;
 	message.password = password;
 	auto auth_buffer = encodeAuthMessage(message);
-	send_data(sockfd, server_address, auth_buffer);
-	std::cout << "Sent auth message with username: " << message.username << ", password: " << message.password << std::endl;
 
 	// Get session number from ack message
 	AckMessage ack;
 	try
 	{
-		ack = receive_ack(sockfd, server_address);
+		std::cout << "Sending auth message with username: " << message.username << ", password: " << message.password << std::endl;
+		ack = exchange_data(sockfd, server_address, auth_buffer);
 	}
 	catch (eftp_exception const &e)
 	{
@@ -73,6 +72,9 @@ void read_request(int sockfd, sockaddr_in server_address, int session, std::stri
 	rrq.session = session;
 	rrq.filename = filename;
 	auto rrq_buffer = encodeReadRequestMessage(rrq);
+
+	// Send rrq message and immediately start receiving file
+	std::cout << "Sending rrq message with session: " << session << ", filename: " << filename << std::endl;
 	send_data(sockfd, server_address, rrq_buffer);
 
 	// Read incoming blocks
@@ -96,7 +98,10 @@ void write_request(int sockfd, sockaddr_in server_address, int session, std::str
 	wrq.session = session;
 	wrq.filename = filename;
 	auto wrq_buffer = encodeWriteRequestMessage(wrq);
-	send_data(sockfd, server_address, wrq_buffer);
+
+	// Send wrq message and wait for ack
+	std::cout << "Sending wrq message with session: " << session << ", filename: " << filename << std::endl;
+	exchange_data(sockfd, server_address, wrq_buffer);
 
 	// Read incoming blocks
 	try

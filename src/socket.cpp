@@ -13,8 +13,6 @@
 #include "socket.h"
 #include "errors.h"
 
-#define DEFAULT_TIMEOUT 5
-
 int create_socket(bool timeout)
 {
 	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -52,9 +50,39 @@ ssize_t send_ack(int sockfd, sockaddr_in &address, std::uint16_t session, std::u
 	auto ack_buffer = encodeAckMessage(ack);
 
 	// Send ack message
-	auto bytes_received = send_data(sockfd, address, ack_buffer);
-	std::cout << "Sent ack message with session: " << session << ", block: " << block << ", segment: " << +segment << std::endl;
-	return bytes_received;
+	std::cout << "Sending ack message with session: " << session << ", block: " << block << ", segment: " << +segment << std::endl;
+	auto bytes_sent = send_data(sockfd, address, ack_buffer);
+	return bytes_sent;
+}
+
+AckMessage exchange_data(int sockfd, sockaddr_in &address, std::vector<std::uint8_t> data_buffer)
+{
+	return exchange_data(sockfd, address, data_buffer, DEFAULT_RETRIES);
+}
+
+AckMessage exchange_data(int sockfd, sockaddr_in &address, std::vector<std::uint8_t> data_buffer, int retry_count)
+{
+	// Send data message
+	send_data(sockfd, address, data_buffer);
+
+	// Wait for ack to arrive
+	AckMessage ack;
+	try
+	{
+		// Verify correct ack
+		ack = receive_ack(sockfd, address);
+		return ack;
+	}
+	catch (receive_error const &e)
+	{
+		// Retry if receive timed out
+		if (retry_count > 0)
+		{
+			return exchange_data(sockfd, address, data_buffer, retry_count - 1);
+		}
+		else
+			throw timeout_error("transfer timed out after 3 retries");
+	}
 }
 
 std::tuple<ssize_t, std::vector<std::uint8_t>> receive_data(int sockfd, sockaddr_in &address)
@@ -66,7 +94,7 @@ std::tuple<ssize_t, std::vector<std::uint8_t>> receive_data(int sockfd, sockaddr
 
 	// Throw error when no retries remaining
 	if (bytes_received < 0)
-		throw receive_error("error receiving data");
+		throw receive_error("error receiving message");
 
 	// Check if error message
 	Opcode opcode = decodeOpcode(data_buffer);

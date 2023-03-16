@@ -13,7 +13,7 @@ void send_file(int sockfd, sockaddr_in client_address, int session, std::string 
 
 void send_block(int sockfd, sockaddr_in client_address, int session, std::vector<std::uint8_t> block, int current_block, int block_size);
 
-bool send_segment(int sockfd, sockaddr_in client_address, int session, std::vector<std::uint8_t> block, int current_block, int current_segment);
+void send_segment(int sockfd, sockaddr_in client_address, int session, std::vector<std::uint8_t> block, int current_block, int current_segment);
 
 void receive_file(int sockfd, sockaddr_in client_address, int session, std::string filename, std::string working_directory);
 

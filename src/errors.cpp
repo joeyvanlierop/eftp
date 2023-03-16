@@ -15,6 +15,8 @@ receive_error::receive_error(std::string message) : eftp_exception(message) {}
 
 unexpected_message::unexpected_message(std::string message) : receive_error(message) {}
 
+misordered_ack::misordered_ack(std::string message) : receive_error(message) {}
+
 send_error::send_error(std::string message) : eftp_exception(message) {}
 
 timeout_error::timeout_error(std::string message) : eftp_exception(message) {}

@@ -79,6 +79,7 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 	{
 		WriteRequestMessage wrq = decodeWriteRequestMessage(req_buffer);
 		std::cout << "Received write request message with session: " << wrq.session << ", filename: " << wrq.filename << std::endl;
+		send_ack(sockfd, client_address, session, 1, 0);
 		try
 		{
 			receive_file(sockfd, client_address, session, wrq.filename, working_directory);
