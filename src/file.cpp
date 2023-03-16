@@ -98,12 +98,26 @@ void send_segment(int sockfd, sockaddr_in address, int session, std::vector<std:
 
 void receive_file(int sockfd, sockaddr_in address, int session, std::string filename, std::string working_directory)
 {
+	// Send error message if file already exist
+	std::ifstream infile(working_directory + filename, std::ios::out | std::ios::binary);
+	if (infile.good())
+	{
+		// Send the error message and exit
+		ErrorMessage error;
+		error.message = "File already exist";
+		auto error_buffer = encodeErrorMessage(error);
+		send_data(sockfd, address, error_buffer);
+		throw io_error("file already exist");
+	}
+
 	std::ofstream file(working_directory + filename, std::ios::out | std::ios::binary);
 
 	while (1)
 	{
-		// Write block to file
+		// Construct block
 		std::vector<std::uint8_t> block = receive_block(sockfd, address, session);
+
+		// Write block to file
 		file.write(reinterpret_cast<const char *>(block.data()), block.size());
 
 		// We are done reading when the incoming block is less than the max block size
