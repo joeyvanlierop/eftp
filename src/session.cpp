@@ -60,7 +60,7 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 		close(sockfd);
 		return;
 	}
-		std::cout << "Sent ack message with session: " << ack.session << std::endl;
+	std::cout << "Sent ack message with session: " << ack.session << std::endl;
 
 	// Wait for a read or write request to arrive
 	std::vector<std::uint8_t> req_buffer(1031);
@@ -74,24 +74,24 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 
 	// Process message
 	// Should be a read or write request
-	// void receive_file(int sockfd, sockaddr_in client_address, int session, std::string filename);
 	opcode = decodeOpcode(req_buffer);
 	if (opcode == Opcode::RRQ)
 	{
 		ReadRequestMessage rrq = decodeReadRequestMessage(req_buffer);
 		std::cout << "Received read request message with session: " << rrq.session << ", filename: " << rrq.filename << std::endl;
-		std::thread process(send_file, sockfd, client_address, session, rrq.filename, working_directory);
-		process.detach();
+		send_file(sockfd, client_address, session, rrq.filename, working_directory);
 	}
 	else if (opcode == Opcode::WRQ)
 	{
 		WriteRequestMessage wrq = decodeWriteRequestMessage(req_buffer);
 		std::cout << "Received write request message with session: " << wrq.session << ", filename: " << wrq.filename << std::endl;
-		std::thread process(receive_file, sockfd, client_address, session, wrq.filename, working_directory);
-		process.detach();
+		receive_file(sockfd, client_address, session, wrq.filename, working_directory);
 	}
 	else
 	{
 		std::cout << "Expected read request message or write request message" << std::endl;
 	}
+
+	// Close
+	close(sockfd);
 }

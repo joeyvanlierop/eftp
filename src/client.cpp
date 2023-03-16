@@ -73,12 +73,16 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	// Decode ack message
+	// Validate ack message
 	AckMessage ack = decodeAckMessage(buffer);
 	int session = ack.session;
 	std::cout << "Received ack message with session: " << ack.session << ", block: " << ack.block << ", segment: " << +ack.segment << std::endl;
 
-	read_request(sockfd, server_address, session, filename);
+	// File transfer
+	if (upload)
+		write_request(sockfd, server_address, session, filename);
+	else
+		read_request(sockfd, server_address, session, filename);
 
 	// Clean up
 	close(sockfd);
@@ -95,9 +99,20 @@ void read_request(int sockfd, sockaddr_in server_address, int session, std::stri
 	sendto(sockfd, rrq_buffer.data(), rrq_buffer.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
 
 	// Read incoming blocks
-	// receive_file(sockfd, server_address, session, "out.a", "./");	
+	receive_file(sockfd, server_address, session, filename, "./");
+}
 
-	std::cout << "Done receiving " << filename << std::endl;
+void write_request(int sockfd, sockaddr_in server_address, int session, std::string filename)
+{
+	// Send read request
+	WriteRequestMessage wrq;
+	wrq.session = session;
+	wrq.filename = filename;
+	auto wrq_buffer = encodeWriteRequestMessage(wrq);
+	sendto(sockfd, wrq_buffer.data(), wrq_buffer.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
+
+	// Read incoming blocks
+	send_file(sockfd, server_address, session, filename, "./");
 }
 
 std::tuple<std::string, std::string, std::string, int> parse_auth(const std::string &input)

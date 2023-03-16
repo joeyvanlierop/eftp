@@ -19,6 +19,7 @@
 void send_file(int sockfd, sockaddr_in client_address, int session, std::string filename, std::string working_directory)
 {
 	std::ifstream file(working_directory + filename, std::ios::in | std::ios::binary);
+
 	int current_block = 1;
 	while (1)
 	{
@@ -46,12 +47,17 @@ void send_block(int sockfd, sockaddr_in client_address, int session, std::vector
 {
 	// Split into segments
 	int num_segments = std::max(1, (int)std::ceil((double)block_size / (double)SEGMENT_SIZE));
-	for (int offset = 0; offset < num_segments; offset++)
+	int offset = 0;
+	for (offset = 0; offset < num_segments; offset++)
 	{
 		auto start_index = block.begin() + offset * SEGMENT_SIZE;
 		auto end_index = (offset + 1) * SEGMENT_SIZE > block_size ? block.end() : start_index + SEGMENT_SIZE;
 		auto segment = std::vector<std::uint8_t>(start_index, end_index);
 		send_segment(sockfd, client_address, session, segment, current_block, offset + 1);
+	}
+	if (num_segments < SEGMENT_COUNT && block_size % SEGMENT_SIZE == 0)
+	{
+		send_segment(sockfd, client_address, session, {}, current_block, offset + 1);
 	}
 }
 
@@ -102,6 +108,25 @@ bool send_segment(int sockfd, sockaddr_in client_address, int session, std::vect
 	{
 		return false;
 	}
+}
+
+void receive_file(int sockfd, sockaddr_in address, int session, std::string filename, std::string working_directory)
+{
+	std::ofstream file(working_directory + filename, std::ios::out | std::ios::binary);
+
+	while (1)
+	{
+		// Write block to file
+		std::vector<std::uint8_t> block = receive_block(sockfd, address, session);
+		file.write(reinterpret_cast<const char *>(block.data()), block.size());
+
+		// We are done reading when the incoming block is less than the max block size
+		if (block.size() < BLOCK_SIZE)
+			break;
+	}
+
+	std::cout << "Done receiving " << filename << std::endl;
+	file.close();
 }
 
 std::vector<std::uint8_t> receive_block(int sockfd, sockaddr_in client_address, int session)
@@ -165,22 +190,4 @@ std::vector<std::uint8_t> receive_segment(int sockfd, sockaddr_in client_address
 
 	// Return the data buffer
 	return data.data;
-}
-
-void receive_file(int sockfd, sockaddr_in address, int session, std::string filename)
-{
-	std::ofstream file(filename, std::ios::out | std::ios::binary);
-
-	while (1)
-	{
-		// Write block to file
-		std::vector<std::uint8_t> block = receive_block(sockfd, address, session);
-		file.write(reinterpret_cast<const char *>(block.data()), block.size());
-
-		// We are done reading when the incoming block is less than the max block size
-		if (block.size() < BLOCK_SIZE)
-			break;
-	}
-
-	file.close();
 }
