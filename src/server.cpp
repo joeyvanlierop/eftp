@@ -1,6 +1,3 @@
-#include "server.h"
-#include "socket.h"
-#include "session.h"
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -13,10 +10,14 @@
 #include <signal.h>
 #include <map>
 
+#include "server.h"
+#include "socket.h"
+#include "session.h"
+
 // Server socket descriptor
 int sockfd;
 
-// Current session
+// Session
 int current_session = 0;
 
 int main(int argc, char *argv[])

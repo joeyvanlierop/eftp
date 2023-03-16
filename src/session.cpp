@@ -1,7 +1,3 @@
-#include "file.h"
-#include "session.h"
-#include "socket.h"
-#include "messages.h"
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -11,8 +7,11 @@
 #include <iostream>
 #include <cstring>
 #include <thread>
-#include <signal.h>
-#include <map>
+
+#include "file.h"
+#include "session.h"
+#include "socket.h"
+#include "messages.h"
 
 void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::string username, std::string password, int session, std::string working_directory)
 {

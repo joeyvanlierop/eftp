@@ -1,13 +1,14 @@
-#include "client.h"
-#include "messages.h"
-#include "file.h"
-#include "socket.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <iostream>
 #include <cstring>
+
+#include "client.h"
+#include "messages.h"
+#include "file.h"
+#include "socket.h"
 
 int main(int argc, char *argv[])
 {

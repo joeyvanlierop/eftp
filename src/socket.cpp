@@ -1,5 +1,3 @@
-#include "messages.h"
-#include "socket.h"
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -10,6 +8,9 @@
 #include <cstring>
 #include <thread>
 #include <iostream>
+
+#include "messages.h"
+#include "socket.h"
 
 #define DEFAULT_TIMEOUT 3
 

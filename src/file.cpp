@@ -1,6 +1,3 @@
-#include "file.h"
-#include "messages.h"
-#include "socket.h"
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -11,11 +8,14 @@
 #include <cstring>
 #include <thread>
 #include <signal.h>
-#include <map>
 #include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <cmath>
+
+#include "file.h"
+#include "messages.h"
+#include "socket.h"
 
 void send_file(int sockfd, sockaddr_in address, int session, std::string filename, std::string working_directory)
 {
@@ -56,10 +56,10 @@ void send_block(int sockfd, sockaddr_in address, int session, std::vector<std::u
 		auto segment = std::vector<std::uint8_t>(start_index, end_index);
 		send_segment(sockfd, address, session, segment, current_block, offset + 1);
 	}
-	if (num_segments < SEGMENT_COUNT && block_size % SEGMENT_SIZE == 0)
-	{
+
+	// Send empty segment if block divides perfectly
+	if (num_segments < SEGMENT_COUNT && block_size % SEGMENT_SIZE == 0 && block_size != 0)
 		send_segment(sockfd, address, session, {}, current_block, offset + 1);
-	}
 }
 
 bool send_segment(int sockfd, sockaddr_in address, int session, std::vector<std::uint8_t> segment, int current_block, int current_segment)

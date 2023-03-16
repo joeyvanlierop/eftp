@@ -1,6 +1,7 @@
-#include "messages.h"
 #include <cstring>
 #include <iostream>
+
+#include "messages.h"
 
 std::vector<std::uint8_t> encodeAuthMessage(const AuthMessage &message)
 {

@@ -3,6 +3,17 @@ eftpclient
 eftpserver
 *.o
 
+# Test files
+hare.jpg
+snooze.jpg
+snowfall.mp4
+1KB.txt
+4KB.txt
+8KB.txt
+16KB.txt
+767.txt
+notes.zip
+
 # Workspace config files
 c_cpp_properties.json
 .vscode/
