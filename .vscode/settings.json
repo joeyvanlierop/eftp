@@ -59,5 +59,13 @@
     "thread": "cpp",
     "cinttypes": "cpp",
     "typeinfo": "cpp"
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true
   }
 }

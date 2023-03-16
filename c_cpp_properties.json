@@ -2,7 +2,7 @@
   "configurations": [
     {
       "name": "Linux",
-      "intelliSenseMode": "clang-x64",
+      "intelliSenseMode": "linux-clang-x64",
       "includePath": ["${workspaceFolder}/**"],
       "compilerPath": "/usr/bin/clang",
       "cppStandard": "c++17",

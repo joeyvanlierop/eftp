@@ -1,6 +1,7 @@
 #include "client.h"
 #include "messages.h"
 #include "file.h"
+#include "socket.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -35,48 +36,22 @@ int main(int argc, char *argv[])
 	server_address.sin_addr.s_addr = inet_addr(ip.c_str());
 	server_address.sin_port = htons(port);
 
-	// Encode an auth message as a vector of bytes
+	// Send auth message
 	AuthMessage message;
 	message.username = username;
 	message.password = password;
-	auto message_data = encodeAuthMessage(message);
+	auto auth_buffer = encodeAuthMessage(message);
+	send_data(sockfd, server_address, auth_buffer);
 
-	// Send the message over UDP from a randomly assigned port
-	auto bytes_sent = sendto(sockfd, message_data.data(), message_data.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
-	if (bytes_sent < 0)
-	{
-		std::cerr << "Failed to send message\n";
+	// Wait for ack to arrive
+	AckMessage ack;
+	try {
+		ack = receive_ack(sockfd, server_address);
+	} catch(std::exception const& e) {
+    std::cout << "Error: " << e.what() << std::endl;
 		exit(EXIT_FAILURE);
 	}
-
-	// Wait for a message to arrive
-	std::vector<std::uint8_t> buffer(1031); // Allocate a buffer to hold the incoming message
-	socklen_t len = sizeof(server_address);
-	ssize_t bytes_received = recvfrom(sockfd, buffer.data(), buffer.size(), 0, (struct sockaddr *)&server_address, &len);
-	if (bytes_received < 0)
-	{
-		std::cerr << "Failed to receive message" << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	// Decode message
-	Opcode opcode = decodeOpcode(buffer);
-	if (opcode == Opcode::ERROR)
-	{
-		ErrorMessage error = decodeErrorMessage(buffer);
-		std::cout << "Received error message: " << error.message << std::endl;
-		return EXIT_FAILURE;
-	}
-	else if (opcode != Opcode::ACK)
-	{
-		std::cout << "Received message with invalid opcode: " << (std::uint16_t)opcode << std::endl;
-		return EXIT_FAILURE;
-	}
-
-	// Validate ack message
-	AckMessage ack = decodeAckMessage(buffer);
 	int session = ack.session;
-	std::cout << "Received ack message with session: " << ack.session << ", block: " << ack.block << ", segment: " << +ack.segment << std::endl;
 
 	// File transfer
 	if (upload)
@@ -96,7 +71,7 @@ void read_request(int sockfd, sockaddr_in server_address, int session, std::stri
 	rrq.session = session;
 	rrq.filename = filename;
 	auto rrq_buffer = encodeReadRequestMessage(rrq);
-	sendto(sockfd, rrq_buffer.data(), rrq_buffer.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
+	send_data(sockfd, server_address, rrq_buffer);
 
 	// Read incoming blocks
 	receive_file(sockfd, server_address, session, filename, "./");
@@ -109,7 +84,7 @@ void write_request(int sockfd, sockaddr_in server_address, int session, std::str
 	wrq.session = session;
 	wrq.filename = filename;
 	auto wrq_buffer = encodeWriteRequestMessage(wrq);
-	sendto(sockfd, wrq_buffer.data(), wrq_buffer.size(), 0, (struct sockaddr *)&server_address, sizeof(server_address));
+	send_data(sockfd, server_address, wrq_buffer);
 
 	// Read incoming blocks
 	send_file(sockfd, server_address, session, filename, "./");

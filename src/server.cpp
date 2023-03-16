@@ -1,5 +1,5 @@
 #include "server.h"
-#include "messages.h"
+#include "socket.h"
 #include "session.h"
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -58,14 +58,14 @@ int main(int argc, char *argv[])
 	while (1)
 	{
 		// Wait for a message to arrive
-		std::vector<std::uint8_t> buffer(1031);
 		struct sockaddr_in client_address;
 		socklen_t len = sizeof(client_address);
-		ssize_t bytes_received = recvfrom(sockfd, buffer.data(), buffer.size(), 0, (struct sockaddr *)&client_address, &len);
-		if (bytes_received < 0)
-		{
-			std::cerr << "Failed to receive message" << std::endl;
-			exit(EXIT_FAILURE);
+		std::vector<std::uint8_t> buffer;
+		try {
+			std::tie(std::ignore, buffer) = receive_data(sockfd, client_address);
+		} catch(std::exception const& e) {
+			std::cout << "Error: " << e.what() << std::endl;
+			continue;
 		}
 
 		// Process message

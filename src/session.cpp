@@ -1,5 +1,6 @@
 #include "file.h"
 #include "session.h"
+#include "socket.h"
 #include "messages.h"
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -42,33 +43,21 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 		ErrorMessage error;
 		error.message = "Invalid credentials";
 		auto error_buffer = encodeErrorMessage(error);
-		sendto(sockfd, error_buffer.data(), error_buffer.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
+		send_data(sockfd, client_address, error_buffer);
 		close(sockfd);
 		return;
 	}
 
-	// Send an ack message
-	AckMessage ack;
-	ack.session = session;
-	ack.block = 0;
-	ack.segment = 0;
-	auto ack_buffer = encodeAckMessage(ack);
-	auto bytes_sent = sendto(sockfd, ack_buffer.data(), ack_buffer.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
-	if (bytes_sent < 0)
-	{
-		std::cerr << "Failed to send ack message" << std::endl;
-		close(sockfd);
-		return;
-	}
-	std::cout << "Sent ack message with session: " << ack.session << std::endl;
+	// Send ack message with new session information
+	send_ack(sockfd, client_address, session, 0, 0);
 
-	// Wait for a read or write request to arrive
-	std::vector<std::uint8_t> req_buffer(1031);
-	socklen_t len = sizeof(client_address);
-	ssize_t bytes_received = recvfrom(sockfd, req_buffer.data(), req_buffer.size(), 0, (struct sockaddr *)&client_address, &len);
-	if (bytes_received < 0)
-	{
-		std::cerr << "Failed to receive message" << std::endl;
+	// Wait for a read or write request message to arrive
+	std::vector<std::uint8_t> req_buffer;
+	try {
+		std::tie(std::ignore, req_buffer) = receive_data(sockfd, client_address);
+	} catch(std::exception const& e) {
+		std::cout << "Error: " << e.what() << std::endl;
+		close(sockfd);
 		exit(EXIT_FAILURE);
 	}
 
