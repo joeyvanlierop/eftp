@@ -4,4 +4,5 @@ eftpserver
 *.o
 
 # Workspace config files
-# c_cpp_properties.json
+c_cpp_properties.json
+.vscode/

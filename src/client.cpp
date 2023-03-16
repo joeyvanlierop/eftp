@@ -22,12 +22,7 @@ int main(int argc, char *argv[])
 	std::string filename = argv[3];
 
 	// Create the client socket
-	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sockfd < 0)
-	{
-		printf("Error creating client socket\n");
-		exit(EXIT_FAILURE);
-	}
+	int sockfd = create_socket(true);
 
 	// Prepare the server address (protocol, ip address, port)
 	struct sockaddr_in server_address;
@@ -45,10 +40,13 @@ int main(int argc, char *argv[])
 
 	// Wait for ack to arrive
 	AckMessage ack;
-	try {
-		ack = receive_ack(sockfd, server_address);
-	} catch(std::exception const& e) {
-    std::cout << "Error: " << e.what() << std::endl;
+	try
+	{
+		(ack = receive_ack(sockfd, server_address));
+	}
+	catch (std::exception const &e)
+	{
+		std::cout << "Error: " << e.what() << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	int session = ack.session;

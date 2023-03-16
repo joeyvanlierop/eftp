@@ -29,12 +29,7 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 	std::cout << "Received auth message with username: " << message.username << ", password: " << message.password << std::endl;
 
 	// Create and bind the session to a random port
-	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sockfd < 0)
-	{
-		std::cerr << "Error creating session socket" << std::endl;
-		return;
-	}
+	int sockfd = create_socket(true);
 
 	// Validate credentials
 	if (username != message.username || password != message.password)
@@ -53,9 +48,12 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 
 	// Wait for a read or write request message to arrive
 	std::vector<std::uint8_t> req_buffer;
-	try {
+	try
+	{
 		std::tie(std::ignore, req_buffer) = receive_data(sockfd, client_address);
-	} catch(std::exception const& e) {
+	}
+	catch (std::exception const &e)
+	{
 		std::cout << "Error: " << e.what() << std::endl;
 		close(sockfd);
 		exit(EXIT_FAILURE);

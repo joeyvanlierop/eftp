@@ -32,12 +32,7 @@ int main(int argc, char *argv[])
 	std::string working_directory = std::string(argv[3]);
 
 	// Create the server socket
-	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sockfd < 0)
-	{
-		std::cerr << "Error creating server socket" << std::endl;
-		exit(EXIT_FAILURE);
-	}
+	sockfd = create_socket(false);
 
 	// Prepare the server address (protocol, ip address, port)
 	struct sockaddr_in server_address;
@@ -61,9 +56,12 @@ int main(int argc, char *argv[])
 		struct sockaddr_in client_address;
 		socklen_t len = sizeof(client_address);
 		std::vector<std::uint8_t> buffer;
-		try {
+		try
+		{
 			std::tie(std::ignore, buffer) = receive_data(sockfd, client_address);
-		} catch(std::exception const& e) {
+		}
+		catch (std::exception const &e)
+		{
 			std::cout << "Error: " << e.what() << std::endl;
 			continue;
 		}

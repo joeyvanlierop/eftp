@@ -76,10 +76,13 @@ bool send_segment(int sockfd, sockaddr_in address, int session, std::vector<std:
 
 	// Wait for ack to arrive
 	AckMessage ack;
-	try {
+	try
+	{
 		ack = receive_ack(sockfd, address);
-	} catch(std::exception const& e) {
-    std::cout << "Error: " << e.what() << std::endl;
+	}
+	catch (std::exception const &e)
+	{
+		std::cout << "Error: " << e.what() << std::endl;
 		close(sockfd);
 		exit(EXIT_FAILURE);
 	}
@@ -139,10 +142,13 @@ std::vector<std::uint8_t> receive_segment(int sockfd, sockaddr_in address, int s
 	// Wait for a message to arrive
 	ssize_t bytes_received;
 	std::vector<std::uint8_t> buffer;
-	try {
+	try
+	{
 		std::tie(bytes_received, buffer) = receive_data(sockfd, address);
-	} catch(std::exception const& e) {
-    std::cout << "Error: " << e.what() << std::endl;
+	}
+	catch (std::exception const &e)
+	{
+		std::cout << "Error: " << e.what() << std::endl;
 		exit(EXIT_FAILURE);
 	}
 

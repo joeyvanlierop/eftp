@@ -11,13 +11,32 @@
 #include <thread>
 #include <iostream>
 
+#define DEFAULT_TIMEOUT 3
+
+int create_socket(bool timeout)
+{
+	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sockfd < 0)
+		throw std::runtime_error("Error creating socket");
+
+	// Add socket timeout
+	if (timeout)
+	{
+		struct timeval timeout;
+		timeout.tv_sec = DEFAULT_TIMEOUT;
+		timeout.tv_usec = 0;
+		if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+			throw std::runtime_error("Error setting socket timeout");
+	}
+
+	return sockfd;
+}
+
 ssize_t send_data(int sockfd, sockaddr_in &address, std::vector<std::uint8_t> data_buffer)
 {
 	auto bytes_sent = sendto(sockfd, data_buffer.data(), data_buffer.size(), 0, (struct sockaddr *)&address, sizeof(address));
 	if (bytes_sent < 0)
-	{
 		throw std::runtime_error("Error sending data");
-	}
 	return bytes_sent;
 }
 
@@ -38,14 +57,27 @@ ssize_t send_ack(int sockfd, sockaddr_in &address, std::uint16_t session, std::u
 
 std::tuple<ssize_t, std::vector<std::uint8_t>> receive_data(int sockfd, sockaddr_in &address)
 {
+	return receive_data(sockfd, address, 3);
+}
+
+std::tuple<ssize_t, std::vector<std::uint8_t>> receive_data(int sockfd, sockaddr_in &address, int retries_remaining)
+{
 	// Wait for ack message to arrive
 	std::vector<std::uint8_t> data_buffer(1031);
 	socklen_t len = sizeof(address);
 	ssize_t bytes_received = recvfrom(sockfd, data_buffer.data(), data_buffer.size(), 0, (struct sockaddr *)&address, &len);
-	if (bytes_received < 0)
+
+	// Retry failed receive
+	if (bytes_received < 0 && retries_remaining > 0)
 	{
-		throw std::runtime_error("Error receiving data");
+		std::cerr << "Error receiving data, retrying..." << std::endl;
+		return receive_data(sockfd, address, retries_remaining - 1);
 	}
+
+	// Throw error when no retries remaining
+	if (bytes_received < 0 && retries_remaining == 0)
+		throw std::runtime_error("Error receiving data");
+
 	return {bytes_received, data_buffer};
 }
 
@@ -53,7 +85,7 @@ AckMessage receive_ack(int sockfd, sockaddr_in &address)
 {
 	// Receive data
 	auto [_, data_buffer] = receive_data(sockfd, address);
-	
+
 	// Decode message
 	Opcode opcode = decodeOpcode(data_buffer);
 	if (opcode == Opcode::ERROR)
