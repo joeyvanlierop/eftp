@@ -2,3 +2,6 @@
 eftpclient
 eftpserver
 *.o
+
+# Workspace config files
+# c_cpp_properties.json

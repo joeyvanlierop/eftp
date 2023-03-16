@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
 		// Process message
 		// Only auth messages should be sent to the public port
-		std::thread session_thread(session, buffer, client_address, username, password, current_session++);
+		std::thread session_thread(session, buffer, client_address, username, password, current_session++, working_directory);
 		session_thread.detach();
 	}
 }

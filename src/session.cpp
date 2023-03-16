@@ -1,3 +1,4 @@
+#include "file.h"
 #include "session.h"
 #include "messages.h"
 #include <sys/socket.h>
@@ -12,7 +13,7 @@
 #include <signal.h>
 #include <map>
 
-void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::string username, std::string password, int session)
+void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::string username, std::string password, int session, std::string working_directory)
 {
 	// Validate opcode
 	Opcode opcode = decodeOpcode(buffer);
@@ -59,6 +60,7 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 		close(sockfd);
 		return;
 	}
+		std::cout << "Sent ack message with session: " << ack.session << std::endl;
 
 	// Wait for a read or write request to arrive
 	std::vector<std::uint8_t> req_buffer(1031);
@@ -72,120 +74,24 @@ void session(std::vector<std::uint8_t> buffer, sockaddr_in client_address, std::
 
 	// Process message
 	// Should be a read or write request
+	// void receive_file(int sockfd, sockaddr_in client_address, int session, std::string filename);
 	opcode = decodeOpcode(req_buffer);
 	if (opcode == Opcode::RRQ)
 	{
-		std::thread process(read_request, req_buffer, bytes_received, client_address, session, sockfd);
+		ReadRequestMessage rrq = decodeReadRequestMessage(req_buffer);
+		std::cout << "Received read request message with session: " << rrq.session << ", filename: " << rrq.filename << std::endl;
+		std::thread process(send_file, sockfd, client_address, session, rrq.filename, working_directory);
 		process.detach();
 	}
 	else if (opcode == Opcode::WRQ)
 	{
-		std::thread process(write_request, req_buffer, bytes_received, client_address, session, sockfd);
+		WriteRequestMessage wrq = decodeWriteRequestMessage(req_buffer);
+		std::cout << "Received write request message with session: " << wrq.session << ", filename: " << wrq.filename << std::endl;
+		std::thread process(receive_file, sockfd, client_address, session, wrq.filename, working_directory);
 		process.detach();
 	}
 	else
 	{
 		std::cout << "Expected read request message or write request message" << std::endl;
-	}
-}
-
-void read_request(std::vector<std::uint8_t> buffer, ssize_t bytes_received, sockaddr_in client_address, int session, int sockfd)
-{
-	// Decode rrq message
-	ReadRequestMessage rrq = decodeReadRequestMessage(buffer);
-
-	int i = 0;
-	while (1)
-	{
-		// Send a data message
-		DataMessage data;
-		data.session = session;
-		data.block = data.block;
-		data.segment = i++;
-		if (i == 10)
-			data.data = {};
-		else
-			data.data = {1, 2, 3};
-		auto data_buffer = encodeDataMessage(data);
-		auto bytes_sent = sendto(sockfd, data_buffer.data(), data_buffer.size(), 0, (struct sockaddr *)&client_address, sizeof(client_address));
-		if (bytes_sent < 0)
-		{
-			std::cerr << "Failed to send data message" << std::endl;
-			close(sockfd);
-			return;
-		}
-		std::cout << "Sent data packet" << std::endl;
-
-		// Wait for ack message to arrive
-		std::vector<std::uint8_t> ack_buffer(1031);
-		socklen_t len = sizeof(client_address);
-		ssize_t bytes_received = recvfrom(sockfd, ack_buffer.data(), ack_buffer.size(), 0, (struct sockaddr *)&client_address, &len);
-		if (bytes_received < 0)
-		{
-			std::cerr << "Failed to receive ack message" << std::endl;
-			close(sockfd);
-			return;
-		}
-
-		// Validate data message
-		Opcode opcode = decodeOpcode(ack_buffer);
-		if (opcode != Opcode::ACK)
-		{
-			std::cout << "Expected ack message" << std::endl;
-			close(sockfd);
-			return;
-		}
-		AckMessage ack = decodeAckMessage(ack_buffer);
-		std::cout << "Received ack packet" << std::endl;
-
-		// TODO
-		if (i == 10)
-			break;
-	}
-
-	std::cout << "Done sending " << rrq.filename << std::endl;
-	close(sockfd);
-}
-
-void write_request(std::vector<std::uint8_t> buffer, ssize_t bytes_received, sockaddr_in client_address, int session, int sockfd)
-{
-	Opcode opcode = decodeOpcode(buffer);
-	if (opcode == Opcode::AUTH)
-	{
-		std::cout << "Received unexpected auth message" << std::endl;
-	}
-	else if (opcode == Opcode::RRQ)
-	{
-		ReadRequestMessage message = decodeReadRequestMessage(buffer);
-		std::cout << "Received read request message with session: " << message.session << ", filename: " << message.filename << std::endl;
-	}
-	else if (opcode == Opcode::WRQ)
-	{
-		WriteRequestMessage message = decodeWriteRequestMessage(buffer);
-		std::cout << "Received write request message with session: " << message.session << ", filename: " << message.filename << std::endl;
-	}
-	else if (opcode == Opcode::DATA)
-	{
-		DataMessage message = decodeDataMessage(buffer);
-		std::cout << "Received data request message with session: " << message.session << ", block: " << message.block << ", segment: " << +message.segment << ", data: { ";
-		for (auto i = 0; i < bytes_received - DATA_HEADER_SIZE; i++)
-		{
-			std::cout << +message.data[i] << ", ";
-		}
-		std::cout << "}" << std::endl;
-	}
-	else if (opcode == Opcode::ACK)
-	{
-		AckMessage message = decodeAckMessage(buffer);
-		std::cout << "Received ack message with session: " << message.session << ", block: " << message.block << ", segment: " << +message.segment << std::endl;
-	}
-	else if (opcode == Opcode::ERROR)
-	{
-		ErrorMessage message = decodeErrorMessage(buffer);
-		std::cout << "Received error message with message: " << message.message << std::endl;
-	}
-	else
-	{
-		std::cout << "Received message with invalid opcode: " << (std::uint16_t)opcode << std::endl;
 	}
 }
