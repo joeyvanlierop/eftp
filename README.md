@@ -51,20 +51,20 @@ Error messages are not authenticated and can be sent out by any party at any pha
 
 ## Sequence Diagram Examples  
 
-|   <img src="./assets/fig-1.png" alt="Fig. 1" height="600">                                                                                | 
+|   ![Fig.1](./assets/fig-1.png)                                                                                                           | 
 |   :--:                                                                                                                                                | 
 |   Figure 1: Complete sequence of downloading ”File.txt” (size: 1024 bytes) from the server under ideal situation  
 *X is a random available port the client has chosen, Y is a static port number the server always listens on, and Z is a random available port the server has chosen for this session. Port numbers are omitted in the remaining figures.*                                    |
 
-|   ![./assets/fig-2.png](./assets/fig-2.png)                                                                                                           | 
+|   ![Fig.2](./assets/fig-2.png)                                                                                                           | 
 |   :--:                                                                                                                                                | 
 |   Figure 2: Complete sequence of uploading a file to the server and save it as ”File.txt” (size: 1588 bytes) under ideal situation                  |
 
-|   ![./assets/fig-3.png](./assets/fig-3.png)                                                                                                           | 
+|   ![Fig.3](./assets/fig-3.png)                                                                                                           | 
 |   :--:                                                                                                                                                | 
 |   Figure 3: Complete sequence of uploading a file to the server and save it as ”File.txt” (size: 1588 bytes) under ideal situation but the first segment has two retransmissions    |
 
-|   ![./assets/fig-4.png](./assets/fig-4.png)                                                                                                           | 
+|   ![Fig.4](./assets/fig-4.png)                                                                                                           | 
 |   :--:                                                                                                                                                | 
 |   Figure 4: Complete sequence of uploading a file to the server and save it as ”File.txt” (size: 3088 bytes) under possible real world situation    |
 
