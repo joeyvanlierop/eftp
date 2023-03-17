@@ -33,4 +33,4 @@ clean:
 	-rm *.o eftpclient eftpserver
 
 zip: eftpclient eftpserver
-	zip -r JosephVanLierop.zip client/ server/ blocking/ test/ eftpserver eftpclient Makefile runclient.sh runserver.sh
+	zip -r JosephVanLierop.zip client/ server/ blocking/ bonus/ test/ eftpserver eftpclient Makefile runclient.sh runserver.sh
