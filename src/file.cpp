@@ -75,10 +75,6 @@ void send_block(int sockfd, sockaddr_in address, int session, std::vector<std::u
 
 		// Track segment
 		unacked[offset + 1] = segment;
-
-		// Send segment
-		std::thread segment_thread(send_segment, sockfd, address, session, unacked[offset + 1], current_block, offset + 1);
-		segment_thread.detach();
 	}
 
 	// Hacky solution lmao
@@ -86,7 +82,12 @@ void send_block(int sockfd, sockaddr_in address, int session, std::vector<std::u
 	if (num_segments < SEGMENT_COUNT && block_size % SEGMENT_SIZE == 0 && block_size != 0)
 	{
 		unacked[offset + 1] = {};
-		std::thread segment_thread(send_segment, sockfd, address, session, unacked[offset + 1], current_block, offset + 1);
+	}
+
+	// Send all of the segments
+	for (auto const &entry : unacked)
+	{
+		std::thread segment_thread(send_segment, sockfd, address, session, entry.second, current_block, entry.first);
 		segment_thread.detach();
 	}
 
@@ -229,7 +230,7 @@ DataMessage receive_segment(int sockfd, sockaddr_in address, int session)
 	}
 	buffer.resize(bytes_received);
 	DataMessage data = decodeDataMessage(buffer);
-	std::cout << "Received data packet (" << data.data.size() << ")" << std::endl;
+	std::cout << "Received data packet (" << data.data.size() << " bytes)" << std::endl;
 
 	// Send an ack message
 	send_ack(sockfd, address, session, data.block, data.segment);
