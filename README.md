@@ -51,7 +51,7 @@ Error messages are not authenticated and can be sent out by any party at any pha
 
 ## Sequence Diagram Examples  
 
-|   ![./assets/fig-1.png](./assets/fig-1.png)                                                                                                           | 
+|   <img src="./assets/fig-2.png" alt="Fig. 1" max-width="600">                                                                                    | 
 |   :--:                                                                                                                                                | 
 |   *Figure 1: Complete sequence of downloading ”File.txt” (size: 1024 bytes) from the server under ideal situation*                                    |
 
