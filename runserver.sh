@@ -1,0 +1,1 @@
+clear && make && ./eftpserver a:b 1234 ./test/
