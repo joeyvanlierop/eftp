@@ -5,6 +5,8 @@
 #include <arpa/inet.h>
 #include <vector>
 
+#include "messages.h"
+
 #define BLOCK_SIZE 8192
 #define SEGMENT_COUNT 8
 #define SEGMENT_SIZE 1024
@@ -19,4 +21,4 @@ void receive_file(int sockfd, sockaddr_in client_address, int session, std::stri
 
 std::vector<std::uint8_t> receive_block(int sockfd, sockaddr_in client_address, int session);
 
-std::vector<std::uint8_t> receive_segment(int sockfd, sockaddr_in client_address, int session);
+DataMessage receive_segment(int sockfd, sockaddr_in client_address, int session);

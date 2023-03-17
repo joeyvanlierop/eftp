@@ -77,9 +77,7 @@ AckMessage exchange_data(int sockfd, sockaddr_in &address, std::vector<std::uint
 	{
 		// Retry if receive timed out
 		if (retry_count > 0)
-		{
 			return exchange_data(sockfd, address, data_buffer, retry_count - 1);
-		}
 		else
 			throw timeout_error("transfer timed out after 3 retries");
 	}
