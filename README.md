@@ -55,7 +55,7 @@ Error messages are not authenticated and can be sent out by any party at any pha
 | :-- | :-- |
 | *Figure 1: Complete sequence of downloading ”File.txt” (size: 1024 bytes) from the server under ideal situation* | *Figure 2: Complete sequence of uploading a file to the server and save it as ”File.txt” (size: 1588 bytes) under ideal situation* |
 
-| ![./assets/fig-3.png](./assets/fig-3.png) | ![./assets/fig-4.png](./assets/fig-4.png ) |
+| <img src="./assets/fig-3.png" alt="Fig.3" style="height: 600px"/> | <img src="./assets/fig-4.png" alt="Fig.4" style="height: 600px"/> |
 | :-- | :-- |
 | *Figure 3: Complete sequence of uploading a file to the server and save it as ”File.txt” (size: 1588 bytes) under ideal situation but the first segment has two retransmissions* | *Figure 4: Complete sequence of uploading a file to the server and save it as ”File.txt” (size: 3088 bytes) under possible real world situation* |
 
