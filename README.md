@@ -51,11 +51,11 @@ Error messages are not authenticated and can be sent out by any party at any pha
 
 ## Sequence Diagram Examples  
 
-| <img src="./assets/fig-1.png" alt="Fig.1" style="height: 600px"/> | <img src="./assets/fig-2.png" alt="Fig.2" style="height: 600px"/> |
+| <img src="./assets/fig-1.png" alt="Fig.1" style="height: 600px; width: 50%"/> | <img src="./assets/fig-2.png" alt="Fig.2" style="height: 600px; width: 50%"/> |
 | :-- | :-- |
 | *Figure 1: Complete sequence of downloading ”File.txt” (size: 1024 bytes) from the server under ideal situation* | *Figure 2: Complete sequence of uploading a file to the server and save it as ”File.txt” (size: 1588 bytes) under ideal situation* |
 
-| <img src="./assets/fig-3.png" alt="Fig.3" style="height: 600px"/> | <img src="./assets/fig-4.png" alt="Fig.4" style="height: 600px"/> |
+| <img src="./assets/fig-3.png" alt="Fig.3" style="height: 600px; width: 50%"/> | <img src="./assets/fig-4.png" alt="Fig.4" style="height: 600px; width: 50%"/> |
 | :-- | :-- |
 | *Figure 3: Complete sequence of uploading a file to the server and save it as ”File.txt” (size: 1588 bytes) under ideal situation but the first segment has two retransmissions* | *Figure 4: Complete sequence of uploading a file to the server and save it as ”File.txt” (size: 3088 bytes) under possible real world situation* |
 
