@@ -51,7 +51,7 @@ Error messages are not authenticated and can be sent out by any party at any pha
 
 ## Sequence Diagram Examples  
 
-|   <img src="./assets/fig-1.png" alt="Fig. 1" style="max-width: 600px;">                                                                                | 
+|   ![./assets/fig-1.png](./assets/fig-1.png | height=600)                                                                                                           | 
 |   :--:                                                                                                                                                | 
 |   Figure 1: Complete sequence of downloading ”File.txt” (size: 1024 bytes) from the server under ideal situation  
 *X is a random available port the client has chosen, Y is a static port number the server always listens on, and Z is a random available port the server has chosen for this session. Port numbers are omitted in the remaining figures.*                                    |
