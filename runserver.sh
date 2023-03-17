@@ -1,1 +1,1 @@
-clear && make && ./eftpserver a:b 1234 ./test/
+clear && make && ./eftpserver a:b 12345 ./test/

@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <iostream>
 #include <cstring>
-#include <thread>
 #include <signal.h>
 #include <iostream>
 #include <fstream>
@@ -62,62 +61,18 @@ void send_block(int sockfd, sockaddr_in address, int session, std::vector<std::u
 {
 	// Split into segments
 	int num_segments = std::max(1, (int)std::ceil((double)block_size / (double)SEGMENT_SIZE));
-
-	// Track unacked segments
-	std::map<int, std::vector<std::uint8_t>> unacked;
 	int offset = 0;
 	for (offset = 0; offset < num_segments; offset++)
 	{
-		// Construct segment
 		auto start_index = block.begin() + offset * SEGMENT_SIZE;
 		auto end_index = (offset + 1) * SEGMENT_SIZE > block_size ? block.end() : start_index + SEGMENT_SIZE;
 		auto segment = std::vector<std::uint8_t>(start_index, end_index);
-
-		// Track segment
-		unacked[offset + 1] = segment;
+		send_segment(sockfd, address, session, segment, current_block, offset + 1);
 	}
 
-	// Hacky solution lmao
 	// Send empty segment if block divides perfectly
 	if (num_segments < SEGMENT_COUNT && block_size % SEGMENT_SIZE == 0 && block_size != 0)
-	{
-		unacked[offset + 1] = {};
-	}
-
-	// Send all of the segments
-	for (auto const &entry : unacked)
-	{
-		std::thread segment_thread(send_segment, sockfd, address, session, entry.second, current_block, entry.first);
-		segment_thread.detach();
-	}
-
-	// Wait for all acks
-	int retry_count = 3;
-	while (unacked.size() > 0)
-	{
-		try
-		{
-			auto ack = receive_ack(sockfd, address);
-			if (ack.block == current_block)
-				unacked.erase(ack.segment);
-		}
-		catch (eftp_exception const &e)
-		{
-			if (retry_count > 0)
-			{
-				for (auto const &entry : unacked)
-				{
-					std::thread segment_thread(send_segment, sockfd, address, session, entry.second, current_block, entry.first);
-					segment_thread.detach();
-				}
-				retry_count--;
-			}
-			else
-			{
-				timeout_error("transfer timed out after 3 retries");
-			}
-		}
-	}
+		send_segment(sockfd, address, session, {}, current_block, offset + 1);
 }
 
 void send_segment(int sockfd, sockaddr_in address, int session, std::vector<std::uint8_t> segment, int current_block, int current_segment)
@@ -132,7 +87,13 @@ void send_segment(int sockfd, sockaddr_in address, int session, std::vector<std:
 
 	// Exchange data
 	std::cout << "Sending data segment with session: " << session << ", block: " << current_block << ", segment: " << current_segment << " (" << segment.size() << ")" << std::endl;
-	send_data(sockfd, address, data_buffer);
+	AckMessage ack = exchange_data(sockfd, address, data_buffer);
+
+	// Validate ack
+	if (!(ack.session == session && ack.block == current_block && ack.segment == current_segment))
+	{
+		throw misordered_ack("received misordered ack");
+	}
 }
 
 void receive_file(int sockfd, sockaddr_in address, int session, std::string filename, std::string working_directory)
@@ -174,40 +135,19 @@ std::vector<std::uint8_t> receive_block(int sockfd, sockaddr_in address, int ses
 	std::vector<std::uint8_t> block(BLOCK_SIZE, 1);
 	int bytes_received;
 
-	// Track unreceived segments
-	std::set<int> unreceived;
 	for (int i = 0; i < SEGMENT_COUNT; i++)
-		unreceived.insert(i);
-
-	// Wait for all acks
-	int retry_count = 3;
-	while (unreceived.size() > 0)
 	{
-		try
+		// Receive a segment
+		auto segment = receive_segment(sockfd, address, session);
+
+		// Add segment to block and track total size
+		std::memcpy(&block[i * SEGMENT_SIZE], &segment[0], segment.size());
+		bytes_received += segment.size();
+
+		// Stop reading block if received segment is less than the max segment size
+		if (segment.size() < SEGMENT_SIZE)
 		{
-			// Receive a segment
-			auto data = receive_segment(sockfd, address, session);
-			auto segment = data.data;
-			auto offset = data.segment - 1;
-
-			// Add segment to block and track total size
-			std::memcpy(&block[offset * SEGMENT_SIZE], &segment[0], segment.size());
-			bytes_received += segment.size();
-
-			// Unmark this segment as unreceived (wow nice double negative)
-			unreceived.erase(offset);
-
-			// Unmark all unreceived segments if this is the final segment
-			if (segment.size() < SEGMENT_SIZE)
-				for (int i = offset + 1; i <= SEGMENT_COUNT; i++)
-					unreceived.erase(i);
-		}
-		catch (eftp_exception const &e)
-		{
-			if (retry_count > 0)
-				retry_count--;
-			else
-				timeout_error("receive timed out after 3 retries");
+			break;
 		}
 	}
 	block.resize(bytes_received);
@@ -216,7 +156,7 @@ std::vector<std::uint8_t> receive_block(int sockfd, sockaddr_in address, int ses
 	return block;
 }
 
-DataMessage receive_segment(int sockfd, sockaddr_in address, int session)
+std::vector<std::uint8_t> receive_segment(int sockfd, sockaddr_in address, int session)
 {
 	// Wait for a message to arrive
 	auto [bytes_received, buffer] = receive_data(sockfd, address);
@@ -230,11 +170,11 @@ DataMessage receive_segment(int sockfd, sockaddr_in address, int session)
 	}
 	buffer.resize(bytes_received);
 	DataMessage data = decodeDataMessage(buffer);
-	std::cout << "Received data packet (" << data.data.size() << " bytes)" << std::endl;
+	std::cout << "Received data packet (" << data.data.size() << ")" << std::endl;
 
 	// Send an ack message
 	send_ack(sockfd, address, session, data.block, data.segment);
 
 	// Return the data buffer
-	return data;
+	return data.data;
 }

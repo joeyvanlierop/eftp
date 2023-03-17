@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <iostream>
 #include <cstring>
-#include <thread>
 
 #include "file.h"
 #include "session.h"

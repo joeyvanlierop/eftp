@@ -8,29 +8,29 @@ eftpclient: client.o file.o socket.o messages.o errors.o
 eftpserver: server.o session.o file.o socket.o messages.o errors.o
 	g++ -g server.o session.o file.o socket.o messages.o errors.o -o eftpserver
 
-client.o: bonus/client.cpp bonus/client.h
-	g++ -c bonus/client.cpp
+client.o: blocking/client.cpp blocking/client.h
+	g++ -c blocking/client.cpp
 
-server.o: bonus/server.cpp bonus/server.h
-	g++ -c bonus/server.cpp
+server.o: blocking/server.cpp blocking/server.h
+	g++ -c blocking/server.cpp
 
-session.o: bonus/session.cpp bonus/session.h
-	g++ -c bonus/session.cpp
+session.o: blocking/session.cpp blocking/session.h
+	g++ -c blocking/session.cpp
 
-socket.o: bonus/socket.cpp bonus/socket.h
-	g++ -c bonus/socket.cpp
+socket.o: blocking/socket.cpp blocking/socket.h
+	g++ -c blocking/socket.cpp
 
-file.o: bonus/file.cpp bonus/file.h
-	g++ -c bonus/file.cpp
+file.o: blocking/file.cpp blocking/file.h
+	g++ -c blocking/file.cpp
 
-messages.o: bonus/messages.cpp bonus/messages.h
-	g++ -c bonus/messages.cpp
+messages.o: blocking/messages.cpp blocking/messages.h
+	g++ -c blocking/messages.cpp
 
-errors.o: bonus/errors.cpp bonus/errors.h
-	g++ -c bonus/errors.cpp
+errors.o: blocking/errors.cpp blocking/errors.h
+	g++ -c blocking/errors.cpp
 
 clean:
 	-rm *.o eftpclient eftpserver
 
 zip: eftpclient eftpserver
-	zip -r JosephVanLierop.zip client/ server/ bonus/ test/ eftpserver eftpclient Makefile runclient.sh runserver.sh
+	zip -r JosephVanLierop.zip client/ server/ blocking/ test/ eftpserver eftpclient Makefile runclient.sh runserver.sh

@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <iostream>
 #include <cstring>
-#include <thread>
 #include <iostream>
 
 #include "messages.h"

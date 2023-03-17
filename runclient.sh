@@ -1,1 +1,1 @@
-clear && make && ./eftpclient a:b@127.0.0.1:1234 download hare.jpg
+clear && make && ./eftpclient a:b@127.0.0.1:12345 download hare.jpg
