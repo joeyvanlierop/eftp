@@ -70,4 +70,4 @@ Error messages are not authenticated and can be sent out by any party at any pha
 
 ## Personal Notes
 
-This was an assignment as part of a networking course at the University of Calgary (CPSC 441). It was given a pretty tight deadline, and so the code I wrote can be pretty ugly in some parts. At some point I tried to encapsulate the different modules (client, server, session, etc) into classes, but it didn't really clean anything up. Maybe one day I'll come back and try to tidy some of the cruft up, but until then, have fun reading through the caffeine-fueled, stress-powered, spaghetti code written by an average C++ hater.
+This was an assignment as part of a networking course at the University of Calgary. It was given a pretty tight deadline, and so the code I wrote can be pretty ugly in some parts. At some point I tried to encapsulate the different modules (client, server, session, etc) into classes, but it didn't really clean anything up. Maybe one day I'll come back and try to tidy some of the cruft up, but until then, have fun reading through the caffeine-fueled, stress-powered, spaghetti code written by an average C++ hater.
