@@ -74,6 +74,7 @@ AckMessage exchange_data(int sockfd, sockaddr_in &address, std::vector<std::uint
 	}
 	catch (receive_error const &e)
 	{
+		std::cout << "Did not receive ack, retrying (" << retry_count << " tries remaining)" << std::endl;
 		// Retry if receive timed out
 		if (retry_count > 0)
 			return exchange_data(sockfd, address, data_buffer, retry_count - 1);

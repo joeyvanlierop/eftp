@@ -129,6 +129,7 @@ void receive_file(int sockfd, sockaddr_in address, int session, std::string file
 	file.close();
 }
 
+bool has_skipped = true;
 std::vector<std::uint8_t> receive_block(int sockfd, sockaddr_in address, int session)
 {
 	// Block buffer
@@ -138,10 +139,28 @@ std::vector<std::uint8_t> receive_block(int sockfd, sockaddr_in address, int ses
 	for (int i = 0; i < SEGMENT_COUNT; i++)
 	{
 		// Receive a segment
-		auto segment = receive_segment(sockfd, address, session);
+		DataMessage message;
+
+		// Retry functionality
+		while(1) {
+			try {
+				message = receive_segment(sockfd, address, session);
+				break;
+			} catch (eftp_exception const &e) {}
+		}
+		auto segment = message.data;
+
+		// Send an ack message
+		// Skip functionality used for demonstration
+		if(message.segment == 4 && !has_skipped) {
+			has_skipped = true;
+			continue;
+		} else {
+			send_ack(sockfd, address, session, message.block, message.segment);
+		}
 
 		// Add segment to block and track total size
-		std::memcpy(&block[i * SEGMENT_SIZE], &segment[0], segment.size());
+		std::memcpy(&block[(message.segment - 1) * SEGMENT_SIZE], &segment[0], segment.size());
 		bytes_received += segment.size();
 
 		// Stop reading block if received segment is less than the max segment size
@@ -156,9 +175,9 @@ std::vector<std::uint8_t> receive_block(int sockfd, sockaddr_in address, int ses
 	return block;
 }
 
-std::vector<std::uint8_t> receive_segment(int sockfd, sockaddr_in address, int session)
+DataMessage receive_segment(int sockfd, sockaddr_in address, int session)
 {
-	// Wait for a message to arrive
+	// Wait for a message to arriv
 	auto [bytes_received, buffer] = receive_data(sockfd, address);
 
 	// Validate data message
@@ -172,9 +191,6 @@ std::vector<std::uint8_t> receive_segment(int sockfd, sockaddr_in address, int s
 	DataMessage data = decodeDataMessage(buffer);
 	std::cout << "Received data packet (" << data.data.size() << ")" << std::endl;
 
-	// Send an ack message
-	send_ack(sockfd, address, session, data.block, data.segment);
-
 	// Return the data buffer
-	return data.data;
+	return data;
 }
